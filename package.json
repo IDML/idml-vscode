@@ -1,0 +1,26 @@
+{
+    "name": "idml",
+    "displayName": "idml",
+    "description": "Ingestion Data Mapping Language",
+    "version": "0.0.1",
+    "publisher": "datasift",
+    "engines": {
+        "vscode": "^1.22.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "idml",
+            "aliases": ["IDML", "idml"],
+            "extensions": [".idml"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "idml",
+            "scopeName": "source.idml",
+            "path": "./syntaxes/idml.tmLanguage.json"
+        }]
+    }
+}
