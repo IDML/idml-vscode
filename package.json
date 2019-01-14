@@ -1,14 +1,15 @@
 {
     "name": "idml",
     "displayName": "idml",
-    "description": "Ingestion Data Mapping Language",
-    "version": "0.0.1",
+    "description": "Ingestion Data Mapping Language support, including interactive debugging.",
+    "version": "1.0.0",
     "publisher": "datasift",
     "engines": {
-        "vscode": "^1.22.0"
+        "vscode": "^1.23.0"
     },
     "categories": [
-        "Languages"
+        "Languages",
+	"Other"
     ],
     "contributes": {
         "languages": [{
@@ -21,6 +22,43 @@
             "language": "idml",
             "scopeName": "source.idml",
             "path": "./syntaxes/idml.tmLanguage.json"
-        }]
+        }],
+	"commands": [
+            {
+                "command": "idmld.run",
+                "title": "Open IDMLd session"
+            },
+            {
+                "command": "idmld.input",
+                "title": "Register as input for IDMLd"
+            },
+            {
+                "command": "idmld.code",
+                "title": "Register as code for IDMLd"
+            }
+	]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    },
+    "dependencies": {
+        "@types/axios": "^0.14.0",
+        "@types/reconnectingwebsocket": "^1.0.1",
+        "axios": "^0.18.0",
+        "generator-code": "^1.1.41",
+        "reconnectingwebsocket": "^1.0.0",
+        "vscode": "^1.1.22",
+        "yo": "^2.0.5"
+    },
+    "devDependencies": {
+        "@types/mocha": "^2.2.42",
+        "@types/node": "^7.10.2",
+        "tslint": "^5.11.0",
+        "typescript": "^2.9.2",
+        "vscode": "^1.1.22"
     }
 }
