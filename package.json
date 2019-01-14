@@ -3,7 +3,7 @@
     "displayName": "idml",
     "description": "Ingestion Data Mapping Language support, including interactive debugging.",
     "version": "1.0.0",
-    "publisher": "datasift",
+    "publisher": "idml-org",
     "license": "MIT",
     "repository": {
       "type": "git",
