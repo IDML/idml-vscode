@@ -2,7 +2,7 @@
     "name": "idml",
     "displayName": "IDML",
     "description": "Ingestion Data Mapping Language support, including interactive debugging.",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "icon": "img/logo.png",
     "publisher": "idml",
     "license": "MIT",
@@ -53,6 +53,11 @@
             }
         ]
     },
+    "activationEvents": [
+        "onCommand:idml.run",
+        "onCommand:idml.input",
+        "onCommand:idml.code"
+    ],
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
