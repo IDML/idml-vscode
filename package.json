@@ -2,7 +2,7 @@
     "name": "idml",
     "displayName": "IDML",
     "description": "Ingestion Data Mapping Language support, including interactive debugging.",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "icon": "img/logo.png",
     "publisher": "idml",
     "license": "MIT",
@@ -40,15 +40,15 @@
         ],
         "commands": [
             {
-                "command": "idmld.run",
+                "command": "idml.run",
                 "title": "Open IDMLd session"
             },
             {
-                "command": "idmld.input",
+                "command": "idml.input",
                 "title": "Register as input for IDMLd"
             },
             {
-                "command": "idmld.code",
+                "command": "idml.code",
                 "title": "Register as code for IDMLd"
             }
         ]

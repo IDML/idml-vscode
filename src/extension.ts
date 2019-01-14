@@ -27,8 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    let run = vscode.commands.registerCommand('idmld.run', () => {
-        vscode.window.showInformationMessage('Hello World!');
+    let run = vscode.commands.registerCommand('idml.run', () => {
         panel = vscode.window.createWebviewPanel(
             'idmld',
             "IDMLd Runner",
@@ -38,13 +37,13 @@ export function activate(context: vscode.ExtensionContext) {
         panel.webview.html = getWebviewContent();
     });
 
-    let input = vscode.commands.registerCommand('idmld.input', () => {
+    let input = vscode.commands.registerCommand('idml.input', () => {
         inputDoc = vscode.window.activeTextEditor.document;
         panel.webview.postMessage({command: "input", data: vscode.window.activeTextEditor.document.getText() });
         panel.webview.postMessage({command: "run"});
     });
 
-    let code = vscode.commands.registerCommand('idmld.code', () => {
+    let code = vscode.commands.registerCommand('idml.code', () => {
         codeDoc = vscode.window.activeTextEditor.document;
         panel.webview.postMessage({command: "code", data: vscode.window.activeTextEditor.document.getText()});
         panel.webview.postMessage({command: "run"});
