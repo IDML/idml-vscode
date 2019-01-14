@@ -1,6 +1,6 @@
 # idml-vscode
 
-This plugin adds support for [IDML (Ingestion Data Mapping Langiage)](http://idml.io/) to vscode.
+This plugin adds support for [IDML (Ingestion Data Mapping Language)](http://idml.io/) to vscode.
 
 ## Features
 

@@ -2,7 +2,7 @@
     "name": "idml",
     "displayName": "IDML",
     "description": "Ingestion Data Mapping Language support, including interactive debugging.",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "icon": "img/logo.png",
     "publisher": "idml",
     "license": "MIT",
