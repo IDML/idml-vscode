@@ -4,26 +4,40 @@
     "description": "Ingestion Data Mapping Language support, including interactive debugging.",
     "version": "1.0.0",
     "publisher": "datasift",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/idml/idml-vscode"
+    }
     "engines": {
         "vscode": "^1.23.0"
     },
     "categories": [
         "Languages",
-	"Other"
+        "Other"
     ],
     "contributes": {
-        "languages": [{
-            "id": "idml",
-            "aliases": ["IDML", "idml"],
-            "extensions": [".idml"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "idml",
-            "scopeName": "source.idml",
-            "path": "./syntaxes/idml.tmLanguage.json"
-        }],
-	"commands": [
+        "languages": [
+            {
+                "id": "idml",
+                "aliases": [
+                    "IDML",
+                    "idml"
+                ],
+                "extensions": [
+                    ".idml"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "idml",
+                "scopeName": "source.idml",
+                "path": "./syntaxes/idml.tmLanguage.json"
+            }
+        ],
+        "commands": [
             {
                 "command": "idmld.run",
                 "title": "Open IDMLd session"
@@ -36,7 +50,7 @@
                 "command": "idmld.code",
                 "title": "Register as code for IDMLd"
             }
-	]
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
@@ -51,6 +65,7 @@
         "axios": "^0.18.0",
         "generator-code": "^1.1.41",
         "reconnectingwebsocket": "^1.0.0",
+        "vsce": "^1.54.0",
         "vscode": "^1.1.22",
         "yo": "^2.0.5"
     },
