@@ -8,9 +8,17 @@ This plugin adds support for [IDML (Ingestion Data Mapping Language)](http://idm
 * Interactive debugging of IDML with sample JSON
 * Autocompletion of both functions and data when using sample JSON
 
-## Requirements
+## Usage
 
-When using the debugger, please run `idml server` in a terminal to provide a language server, later releases may do this for you.
+1. run `idml server` in a terminal to provide the debug server
+2. ctrl+shift+p `Open IDMLd Session`
+3. open some JSON and ctrl+shift+p `Register as input for IDMLd`
+4. open some IDML and ctrl+shift+p `Register as code for IDMLd`
+5. to trigger autocomplete use ctrl+space or your chosen shortcut
+
+## Obligatory Gif
+
+![completion](https://raw.githubusercontent.com/idml/idml-vscode/master/img/completion.gif)
 
 ## Extension Settings
 
