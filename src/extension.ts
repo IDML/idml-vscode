@@ -2,7 +2,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {CompletionItem, CompletionItemKind} from 'vscode';
 
 const axios = require('axios');
 
@@ -15,6 +14,22 @@ export function activate(context: vscode.ExtensionContext) {
     var panel;
     var inputDoc;
     var codeDoc;
+    var tracedDocuments = [];
+
+	const onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
+    const tracedDocumentProvider = class implements vscode.TextDocumentContentProvider {
+
+        // emitter and its event
+		onDidChange = onDidChangeEmitter.event;
+
+        provideTextDocumentContent(uri: vscode.Uri): string {
+            vscode.window.showInformationMessage("document provider called");
+            return tracedDocuments[uri.path.substring(0, uri.path.length-5)];
+        }
+      };
+
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("idml-traced", new tracedDocumentProvider));
+
 
     vscode.workspace.onDidChangeTextDocument(function (event) {
         if (event.document === inputDoc) {
@@ -35,6 +50,24 @@ export function activate(context: vscode.ExtensionContext) {
             { enableScripts: true }
         );
         panel.webview.html = getWebviewContent();
+        panel.webview.onDidReceiveMessage(
+            message => {
+                switch (message.command) {
+                    case 'traced-result':
+                        tracedDocuments = message.result;
+                        vscode.window.showInformationMessage("updated trace details");
+                        for (let i = 0; i < tracedDocuments.length; i++) {
+                            const uri = vscode.Uri.parse("idml-traced:"+i.toString()+".idml");
+                            vscode.window.showInformationMessage("firing update for "+uri.toString())
+                            onDidChangeEmitter.fire(uri);
+                            console.log ("Block statement execution no." + i);
+                        }
+                        return;
+                }
+            },
+            undefined,
+            context.subscriptions
+          );
     });
 
     let input = vscode.commands.registerCommand('idml.input', () => {
@@ -49,10 +82,16 @@ export function activate(context: vscode.ExtensionContext) {
         panel.webview.postMessage({command: "run"});
     });
 
+    let traced = vscode.commands.registerCommand('idml.traced', async () => {
+        panel.webview.postMessage({command: "traced"});
+        let doc = await vscode.workspace.openTextDocument(vscode.Uri.parse("idml-traced:0.idml"));
+        await vscode.window.showTextDocument(doc, { preview: false });
+    });
 
     context.subscriptions.push(run);
     context.subscriptions.push(input);
     context.subscriptions.push(code);
+    context.subscriptions.push(traced);
 
 
     // and completion
@@ -62,7 +101,7 @@ export function activate(context: vscode.ExtensionContext) {
 		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
             return axios.get("http://localhost:8081/functions/").then((fs: HttpResponse<Functions>) => {
                 return fs.data.map((f: Function) => {
-                        const ci = new CompletionItem(f.name, CompletionItemKind.Function);
+                        const ci = new vscode.CompletionItem(f.name, vscode.CompletionItemKind.Function);
                         ci.detail = f.description;
                         ci.documentation = f.description;
                         ci.insertText = f.name+"(";
@@ -86,7 +125,7 @@ export function activate(context: vscode.ExtensionContext) {
             console.log(req);
             return axios.post("http://localhost:8081/completion", req).then((cs: HttpResponse<Array<string>>) => {
                 return cs.data.map((f: string) => {
-                    const ci = new CompletionItem(f, CompletionItemKind.Property);
+                    const ci = new vscode.CompletionItem(f, vscode.CompletionItemKind.Property);
                     ci.sortText = "1" + f; // sort attributes above functions
                     return ci;
                 });
@@ -150,9 +189,11 @@ function getWebviewContent() {
 
     <script>
 
+    const vscode = acquireVsCodeApi();
     var input = [];
     var code = "";
     var path = "root";
+    var traced = [];
     const result = document.getElementById('result');
     const errors = document.getElementById('errors');
     const status = document.getElementById('status');
@@ -175,7 +216,9 @@ function getWebviewContent() {
         if (e.out == null) {
             result.textContent = "null";
         } else {
-	    result.textContent = JSON.stringify(e.out.map(x => x.result), null, 2);
+            result.textContent = JSON.stringify(e.out.map(x => x.result), null, 2);
+            traced = e.traced;
+            vscode.postMessage({"command": "traced-result", "result": traced});
         }
         errors.textContent = e.errors;
         hljs.highlightBlock(result);
@@ -209,6 +252,9 @@ function getWebviewContent() {
             case 'run':
                 console.log(JSON.stringify({"in": input, "idml": code, "path": path}));
                 backend.send(JSON.stringify({"in": input, "idml": code, "path": path}));
+            case 'traced':
+                vscode.postMessage({"command": "traced-result", "result": traced});
+                
         }
     });
 </script>
