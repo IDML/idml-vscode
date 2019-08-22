@@ -7,8 +7,8 @@
     "publisher": "idml",
     "license": "MIT",
     "repository": {
-      "type": "git",
-      "url": "https://github.com/idml/idml-vscode"
+        "type": "git",
+        "url": "https://github.com/idml/idml-vscode"
     },
     "engines": {
         "vscode": "^1.23.0"
@@ -18,6 +18,23 @@
         "Other"
     ],
     "contributes": {
+        "configuration": {
+            "title": "IDML",
+            "properties": {
+                "idml.activatedCode": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "resource",
+                    "description": "if the activated code resource is selected"
+                },
+                "idml.activatedInput": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "resource",
+                    "description": "if the activated input resource is selected"
+                }
+            }
+        },
         "languages": [
             {
                 "id": "idml",
@@ -40,28 +57,83 @@
         ],
         "commands": [
             {
-                "command": "idml.run",
-                "title": "Open IDMLd session"
+                "command": "idml.input",
+                "title": "Set Input",
+                "icon": {
+                    "light": "./img/idml-ball-json.png",
+                    "dark": "./img/idml-ball-json.png"
+                }
             },
             {
-                "command": "idml.input",
-                "title": "Register as input for IDMLd"
+                "command": "idml.inputGrey",
+                "title": "Set Input",
+                "icon": {
+                    "light": "./img/idml-ball-json-grey.png",
+                    "dark": "./img/idml-ball-json-grey.png"                   
+                }
             },
             {
                 "command": "idml.code",
-                "title": "Register as code for IDMLd"
+                "title": "Set Code",
+                "icon": {
+                    "light": "./img/idml-ball.png",
+                    "dark": "./img/idml-ball.png"
+                }
+            },
+            {
+                "command": "idml.codeGrey",
+                "title": "Setr Code",
+                "icon": {
+                    "light": "./img/idml-ball-grey.png",
+                    "dark": "./img/idml-ball-grey.png"
+                }
             },
             {
                 "command": "idml.traced",
                 "title": "Open Traced IDML"
+            },
+            {
+                "command": "idml.setFocus",
+                "title": "Set Focus Path"
             }
-        ]
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "idml.setFocus",
+                    "group": "navigation",
+                    "when": "resourceScheme == idml-result"
+                },
+                {
+                    "command": "idml.codeGrey",
+                    "group": "navigation",
+                    "when": "resourceLangId == idml && ! config.idml.activatedCode"
+                },
+                {
+                    "command": "idml.code",
+                    "group": "navigation",
+                    "when": "resourceLangId == idml && config.idml.activatedCode"
+                },
+                {
+                    "command": "idml.inputGrey",
+                    "group": "navigation",
+                    "when": "resourceLangId == json && resourceScheme != idml-result && ! config.idml.activatedInput"
+                },
+                {
+                    "command": "idml.input",
+                    "group": "navigation",
+                    "when": "resourceLangId == json && resourceScheme != idml-result && config.idml.activatedInput"
+                }
+            ]
+        }
     },
     "activationEvents": [
-        "onCommand:idml.run",
         "onCommand:idml.input",
+        "onCommand:idml.inputGrey",
         "onCommand:idml.code",
-        "onCommand:idml.traced"
+        "onCommand:idml.codeGrey",
+        "onCommand:idml.traced",
+        "onCommand:idml.setFocus"
     ],
     "main": "./out/extension",
     "scripts": {
@@ -73,12 +145,13 @@
     },
     "dependencies": {
         "@types/axios": "^0.14.0",
-        "@types/reconnectingwebsocket": "^1.0.1",
-        "axios": "^0.18.0",
+        "@types/ws": "^6.0.2",
+        "axios": "^0.18.1",
         "generator-code": "^1.1.41",
-        "reconnectingwebsocket": "^1.0.0",
+        "reconnecting-websocket": "^3.2.2",
         "vsce": "^1.54.0",
         "vscode": "^1.1.22",
+        "ws": "^7.1.1",
         "yo": "^2.0.5"
     },
     "devDependencies": {

@@ -2,96 +2,135 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import ReconnectingWebSocket from 'reconnecting-websocket';
+import Websocket from 'ws'; 
 
 const axios = require('axios');
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    var panel;
-    var inputDoc;
-    var codeDoc;
+    var inputDoc: vscode.TextDocument;
+    var codeDoc: vscode.TextDocument;
     var tracedDocuments = [];
+    var outputDocument = "";
+    var focus = "root";
+    // This is ignored because I can't even figure out how to make `constuctor` happy with Websocket being passed to it
+    // @ts-ignore
+    const ws = new ReconnectingWebSocket("ws://localhost:8081", [], {"constructor": Websocket });
+    ws.addEventListener('open', event => {
+    });
+    ws.addEventListener('error', event => {
+    });
+    ws.addEventListener('message', event => {
+        const result = JSON.parse(event.data);
+        if (result.out != null) {
+            const json = result.out.map(x => x.result)
+            outputDocument = JSON.stringify(json, null, 2)
+            outputDocumentChangeEmitter.fire(outputDocumentUri);
+        };
+        if (result.errors != null && result.errors.length > 0) {
+            const errs = result.errors
+            outputDocument = JSON.stringify(errs, null, 2);
+            outputDocumentChangeEmitter.fire(outputDocumentUri);
+        };
+        if (result.traced != null) {
+            const traced = result.traced;
+            tracedDocuments = traced;
+            for (let i = 0; i < tracedDocuments.length; i++) {
+                const uri = vscode.Uri.parse("idml-traced:"+i.toString()+".idml");
+                tracedDocumentChangeEmitter.fire(uri);
+            }
+        };
+    });
 
-	const onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
+	const tracedDocumentChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
     const tracedDocumentProvider = class implements vscode.TextDocumentContentProvider {
-
-        // emitter and its event
-		onDidChange = onDidChangeEmitter.event;
+		onDidChange = tracedDocumentChangeEmitter.event;
 
         provideTextDocumentContent(uri: vscode.Uri): string {
-            vscode.window.showInformationMessage("document provider called");
             return tracedDocuments[uri.path.substring(0, uri.path.length-5)];
         }
-      };
-
+    };
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("idml-traced", new tracedDocumentProvider));
 
+    const outputDocumentUri = vscode.Uri.parse("idml-result:output.json");
+	const outputDocumentChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
+    const outputDocumentProvider = class implements vscode.TextDocumentContentProvider {
+		onDidChange = outputDocumentChangeEmitter.event;
+
+        provideTextDocumentContent(uri: vscode.Uri): string {
+            return outputDocument;
+        }       
+    }
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("idml-result", new outputDocumentProvider));
+
+    function runIdml() {
+        if ((inputDoc != null) && (codeDoc != null)) {
+            const path = focus
+            const msg = JSON.stringify({"in": [JSON.parse(inputDoc.getText())], "idml": codeDoc.getText(), "path": path});
+            ws.send(msg);
+        };
+    }
 
     vscode.workspace.onDidChangeTextDocument(function (event) {
-        if (event.document === inputDoc) {
-            panel.webview.postMessage({command: "input", data: inputDoc.getText() });
-            panel.webview.postMessage({command: "run"});
-        }
-        if (event.document === codeDoc) {
-            panel.webview.postMessage({command: "code", data: codeDoc.getText() });
-            panel.webview.postMessage({command: "run"});
-        }
+        if ((event.document == codeDoc) || (event.document == inputDoc)) {
+            runIdml();
+        };
     });
 
-    let run = vscode.commands.registerCommand('idml.run', () => {
-        panel = vscode.window.createWebviewPanel(
-            'idmld',
-            "IDMLd Runner",
-            vscode.ViewColumn.Three,
-            { enableScripts: true }
-        );
-        panel.webview.html = getWebviewContent();
-        panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'traced-result':
-                        tracedDocuments = message.result;
-                        vscode.window.showInformationMessage("updated trace details");
-                        for (let i = 0; i < tracedDocuments.length; i++) {
-                            const uri = vscode.Uri.parse("idml-traced:"+i.toString()+".idml");
-                            vscode.window.showInformationMessage("firing update for "+uri.toString())
-                            onDidChangeEmitter.fire(uri);
-                            console.log ("Block statement execution no." + i);
-                        }
-                        return;
-                }
-            },
-            undefined,
-            context.subscriptions
-          );
+    function updateActiveState(doc: vscode.TextDocument) {
+        if (doc == codeDoc) {
+            vscode.workspace.getConfiguration().update("idml.activatedCode", true, null)
+        } else if (doc == inputDoc) {
+            vscode.workspace.getConfiguration().update("idml.activatedInput", true, null)
+        } else {
+            vscode.workspace.getConfiguration().update("idml.activatedCode", false, null)
+            vscode.workspace.getConfiguration().update("idml.activatedInput", false, null)
+        }
+    }
+
+    vscode.window.onDidChangeActiveTextEditor(function (event) {
+        updateActiveState(event.document)
     });
 
-    let input = vscode.commands.registerCommand('idml.input', () => {
+
+    async function inputCommand() {
         inputDoc = vscode.window.activeTextEditor.document;
-        panel.webview.postMessage({command: "input", data: vscode.window.activeTextEditor.document.getText() });
-        panel.webview.postMessage({command: "run"});
-    });
+        updateActiveState(inputDoc)
+        runIdml();
+    }
 
-    let code = vscode.commands.registerCommand('idml.code', () => {
+    async function codeCommand() {
         codeDoc = vscode.window.activeTextEditor.document;
-        panel.webview.postMessage({command: "code", data: vscode.window.activeTextEditor.document.getText()});
-        panel.webview.postMessage({command: "run"});
-    });
+        updateActiveState(codeDoc)
+        let doc = await vscode.workspace.openTextDocument(outputDocumentUri);
+        await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Three});
+        runIdml();
+    }
+
+    let input = vscode.commands.registerCommand('idml.input', () => inputCommand());
+    let inputGrey = vscode.commands.registerCommand('idml.inputGrey', () => inputCommand());
+
+    let code = vscode.commands.registerCommand('idml.code', () => codeCommand());
+    let codeGrey = vscode.commands.registerCommand('idml.codeGrey', () => codeCommand());
 
     let traced = vscode.commands.registerCommand('idml.traced', async () => {
-        panel.webview.postMessage({command: "traced"});
         let doc = await vscode.workspace.openTextDocument(vscode.Uri.parse("idml-traced:0.idml"));
         await vscode.window.showTextDocument(doc, { preview: false });
     });
 
-    context.subscriptions.push(run);
+    let setFocus = vscode.commands.registerCommand('idml.setFocus', () => {
+        vscode.window.showInputBox({"value": focus, "prompt": "JSON path to focus on"}).then(s => {
+            focus = s
+            runIdml();
+        });
+    });
+
     context.subscriptions.push(input);
+    context.subscriptions.push(inputGrey);
     context.subscriptions.push(code);
+    context.subscriptions.push(codeGrey);
     context.subscriptions.push(traced);
+    context.subscriptions.push(setFocus);
 
 
     // and completion
@@ -156,112 +195,6 @@ interface HttpResponse<T> {
     data: T;
 }
 
-function getWebviewContent() {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="notviewport" content="width=device-width, initial-scale=1.0">
-    <title>IDML Debug Server</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/zenburn.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-    <script>hljs.initHighlightingOnLoad();</script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/hack/0.8.1/hack.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/hack/0.8.1/dark-grey.css">
-</head>
-<body class="hack dark-grey">
-    <div class="main container">
-        <h1>IDML daemon</h1>
-        <ul><li id="status"></li></ul>
-
-        <form class="form">
-            <fieldset class="form-group">
-                <h2>Path</h2>
-                <input id="path" type="text" class="form-control" placeholder="root">
-            </fieldset>
-        </form>
-        <h2>results</h2>
-        <pre><code class="json" id="result"></code></pre>
-        <h2>errors</h2>
-        <pre id="errors"></pre>
-    </div>
-
-    <script>
-
-    const vscode = acquireVsCodeApi();
-    var input = [];
-    var code = "";
-    var path = "root";
-    var traced = [];
-    const result = document.getElementById('result');
-    const errors = document.getElementById('errors');
-    const status = document.getElementById('status');
-    const pathElem = document.getElementById("path");
-    pathElem.oninput = (event) => {
-        path = pathElem.value;
-        if (pathElem.value=="") {
-            path = "root";
-        } else {
-            path = pathElem.value
-        }
-        console.log(JSON.stringify({"in": input, "idml": code, "path": path}));
-        backend.send(JSON.stringify({"in": input, "idml": code, "path": path}));
-    };
-
-
-    var backend = new ReconnectingWebSocket("ws://localhost:8081/");
-    backend.onmessage = function (event) {
-        const e = JSON.parse(event.data);
-        if (e.out == null) {
-            result.textContent = "null";
-        } else {
-            result.textContent = JSON.stringify(e.out.map(x => x.result), null, 2);
-            traced = e.traced;
-            vscode.postMessage({"command": "traced-result", "result": traced});
-        }
-        errors.textContent = e.errors;
-        hljs.highlightBlock(result);
-    };
-    backend.onopen = function (event) {
-        status.textContent = "connected";
-    }
-    backend.onclose = function (event) {
-        status.textContent = "disconnected";
-    }
-
-    result.textContent = "loaded";
-
-    // Handle the message inside the webview
-    window.addEventListener('message', event => {
-
-        const message = event.data; // The JSON data our extension sent
-
-        switch (message.command) {
-            case 'input':
-                var i = JSON.parse(message.data);
-		if (!Array.isArray(i)) {
-                    input = [i];
-		} else {
-		    input = i;
-		}
-                break;
-            case 'code':
-                code = message.data;
-                break;
-            case 'run':
-                console.log(JSON.stringify({"in": input, "idml": code, "path": path}));
-                backend.send(JSON.stringify({"in": input, "idml": code, "path": path}));
-            case 'traced':
-                vscode.postMessage({"command": "traced-result", "result": traced});
-                
-        }
-    });
-</script>
-
-</body>
-</html>`;
-}
 
 // this method is called when your extension is deactivated
 export function deactivate() {
