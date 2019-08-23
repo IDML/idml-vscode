@@ -24,12 +24,12 @@ export function activate(context: vscode.ExtensionContext) {
         const result = JSON.parse(event.data);
         if (result.out != null) {
             const json = result.out.map(x => x.result)
-            outputDocument = JSON.stringify(json, null, 2)
+            outputDocument = JSON.stringify(json, null, 4)
             outputDocumentChangeEmitter.fire(outputDocumentUri);
         };
         if (result.errors != null && result.errors.length > 0) {
             const errs = result.errors
-            outputDocument = JSON.stringify(errs, null, 2);
+            outputDocument = JSON.stringify(errs, null, 4);
             outputDocumentChangeEmitter.fire(outputDocumentUri);
         };
         if (result.traced != null) {
@@ -66,7 +66,9 @@ export function activate(context: vscode.ExtensionContext) {
     function runIdml() {
         if ((inputDoc != null) && (codeDoc != null)) {
             const path = focus
-            const msg = JSON.stringify({"in": [JSON.parse(inputDoc.getText())], "idml": codeDoc.getText(), "path": path});
+            const input = JSON.parse(inputDoc.getText())
+            const arrayInput = Array.isArray(input) ? input : [input]
+            const msg = JSON.stringify({"in": arrayInput, "idml": codeDoc.getText(), "path": path});
             ws.send(msg);
         };
     }
